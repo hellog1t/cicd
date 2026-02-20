@@ -1,0 +1,26 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+permissions:
+  contents: read
+  packages: write
+
+    
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Docker image
+      run: docker build -t cicd:latest .
+    - name: Push to Docker Hub
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker tag cicd:latest ${{ secrets.DOCKER_USERNAME }}/cicd:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/cicd:latest
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/cicd cicd=${{ secrets.DOCKER_USERNAME }}/cicd:latest
